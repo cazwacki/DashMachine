@@ -61,7 +61,7 @@ import requests
 
 class Sonarr(object):
     def __init__(self, method, prefix, host, port, api_key, verify):
-        self.endpoint = "/api"
+        self.endpoint = "/api/v3"
         self.method = method
         self.prefix = prefix
         self.host = host
@@ -72,6 +72,7 @@ class Sonarr(object):
         # Initialize results
         self.error = None
         self.version = "?"
+        self.movies = 0
         self.wanted_missing = 0
         self.queue = 0
         self.diskspace = [
@@ -129,6 +130,28 @@ class Sonarr(object):
 
         if rawdata != None:
             self.version = rawdata["version"]
+
+    def getMovies(self):
+        verify = (
+            False
+            if str(self.verify).lower() == "false"
+            or str(self.prefix).lower() == "http://"
+            else True
+        )
+        headers = {"X-Api-Key": self.api_key}
+        port = "" if self.port == None else ":" + self.port
+
+        if self.method.upper() == "GET":
+            try:
+                rawdata = requests.get(
+                    self.prefix + self.host + port + self.endpoint + "/movie",
+                    headers=headers,
+                    verify=verify,
+                    timeout=10,
+                ).json()
+            except Exception as e:
+                rawdata = None
+                self.error = f"{e}"
 
     def getWanted(self):
         verify = (
@@ -226,6 +249,7 @@ class Sonarr(object):
         if self.error == None:
             self.error = ""
             self.getVersion()
+            self.getMovies()
             self.getWanted()
             self.getQueue()
             self.getDiskspace()
